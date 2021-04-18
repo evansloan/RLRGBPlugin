@@ -10,21 +10,21 @@
 
 class RLRGBPlugin : public BakkesMod::Plugin::BakkesModPlugin {
 public:
-	int myTeamScore = 0;
-	int otherTeamScore = 0;
+    int myTeamScore = 0;
+    int otherTeamScore = 0;
 
-	virtual void onLoad();
-	virtual void onUnload();
+    virtual void onLoad();
+    virtual void onUnload();
 
-	void Log(std::string msg);
+    void Log(std::string msg);
 
-	void OnMatchStarted(std::string name);
-	void OnGoalScored(std::string name);
-	void OnMatchEnded(std::string name);
+    void OnMatchStarted(std::string name);
+    void OnGoalScored(std::string name);
+    void OnMatchEnded(std::string name);
 
-	ServerWrapper GetCurrentGame();
+    ServerWrapper GetCurrentGame();
 
 
-	void SendRGBEffect(std::string effect, LinearColor color, float speed, int dur);
+    void SendRGBEffect(std::string effect, LinearColor color, float speed, int dur);
 };
 
