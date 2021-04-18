@@ -1,5 +1,5 @@
 # RLRGBPlugin
-Control ws2182b LED strip effects using Bakkesmod, Rocket League, and [rpi-rgb-api](https://github.com/evansloan/rpi-rgb-api)
+Control ws2812b LED strip effects using Bakkesmod, Rocket League, and [rpi-rgb-api](https://github.com/evansloan/rpi-rgb-api)
 
 ## Usage
 1. Set up a [rpi-rgb-api](https://github.com/evansloan/rpi-rgb-api) server
