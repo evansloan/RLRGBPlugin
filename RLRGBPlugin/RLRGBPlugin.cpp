@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "RLRGBPlugin.h"
 
-BAKKESMOD_PLUGIN(RLRGBPlugin, "Control RGB lights based on Rocket League Events", "1.0", PERMISSION_ALL)
+BAKKESMOD_PLUGIN(RLRGBPlugin, "RLRGBPlugin", "1.0", PERMISSION_ALL)
 
 void RLRGBPlugin::onLoad() {
     std::stringstream ss;
@@ -21,7 +21,7 @@ void RLRGBPlugin::onUnload() {
     Log(ss.str());
 
     gameWrapper->UnhookEvent("Function TAGame.GameEvent_TA.EventMatchStarted");
-    gameWrapper->UnhookEvent("Function TAGame.Ball_TA.Explode");
+    gameWrapper->UnhookEvent("Function TAGame.GameEvent_Soccar_TA.EventGoalScored");
     gameWrapper->UnhookEvent("Function TAGame.GameEvent_Soccar_TA.OnMatchEnded");
 }
 
@@ -30,79 +30,55 @@ void RLRGBPlugin::Log(std::string msg) {
 }
 
 void RLRGBPlugin::OnMatchStarted(std::string name) {
+    sw = GetCurrentGame();
+    if (sw->IsNull()) {
+        Log(name + ": Unable to retrieve current game");
+        return;
+    }
+    
+    PriWrapper localPlayer = sw->GetLocalPrimaryPlayer().GetPRI();
+    ArrayWrapper<TeamWrapper> teams = sw->GetTeams();
+
+    myTeam = std::make_shared<TeamWrapper>(teams.Get(localPlayer.GetTeamNum()));
+    otherTeam = std::make_shared<TeamWrapper>(teams.Get(!localPlayer.GetTeamNum()));
+
+    myTeamColor = myTeam->GetPrimaryColor();
+    otherTeamColor = otherTeam->GetPrimaryColor();
     myTeamScore = 0;
     otherTeamScore = 0;
 }
 
 void RLRGBPlugin::OnGoalScored(std::string name) {
-    ServerWrapper sw = GetCurrentGame();
-    if (sw.IsNull()) {
+    if (sw->IsNull()) {
         Log(name + ": Unable to retrieve current game");
         return;
     }
 
-    PriWrapper localPlayer = sw.GetLocalPrimaryPlayer().GetPRI();
-    ArrayWrapper<TeamWrapper> teams = sw.GetTeams();
-
-    TeamWrapper myTeam = teams.Get(localPlayer.GetTeamNum());
-    TeamWrapper otherTeam = teams.Get(!localPlayer.GetTeamNum());
-
-    LinearColor color;
-    std::string effect;
-    float speed;
-
-    if (myTeam.GetScore() > myTeamScore) {
+    if (myTeam->GetScore() > myTeamScore) {
         myTeamScore++;
-        color = myTeam.GetPrimaryColor();
-        effect = "flash";
-        speed = 0.2;
+        std::async(&RLRGBPlugin::SendRGBEffect, this, "flash", myTeamColor, 0.2, 2);
     } else {
         otherTeamScore++;
-        color = otherTeam.GetPrimaryColor();
-        effect = "fade_out";
-        speed = 0.0001;
+        std::async(&RLRGBPlugin::SendRGBEffect, this, "fade_out", otherTeamColor, 0.0001, 2);
     }
-    
-    std::async(&RLRGBPlugin::SendRGBEffect, this, effect, color, speed, 2);
+   
 }
 
 void RLRGBPlugin::OnMatchEnded(std::string name) {
-    ServerWrapper sw = GetCurrentGame();
-    if (sw.IsNull()) {
-        Log(name + ": Unable to retrieve ServerWrapper");
-        return;
-    }
-
-    PriWrapper localPlayer = sw.GetLocalPrimaryPlayer().GetPRI();
-    ArrayWrapper<TeamWrapper> teams = sw.GetTeams();
-
-    TeamWrapper myTeam = teams.Get(localPlayer.GetTeamNum());
-    TeamWrapper otherTeam = teams.Get(!localPlayer.GetTeamNum());
-
-    LinearColor color;
-    std::string effect;
-    float speed;
-
-    if (myTeam.GetScore() > otherTeam.GetScore()) {
-        color = myTeam.GetPrimaryColor();
-        effect = "flash";
-        speed = 0.2;
+    if (myTeam->GetScore() > otherTeam->GetScore()) {
+        std::async(&RLRGBPlugin::SendRGBEffect, this, "flash", myTeamColor, 0.2, 2);
     } else {
-        color = otherTeam.GetPrimaryColor();
-        effect = "fade_out";
-        speed = 0.0001;
+        std::async(&RLRGBPlugin::SendRGBEffect, this, "fade_out", otherTeamColor, 0.0001, 2);
     }
-
-    std::async(&RLRGBPlugin::SendRGBEffect, this, effect, color, speed, 2);
 }
 
-ServerWrapper RLRGBPlugin::GetCurrentGame() {
+std::shared_ptr<ServerWrapper> RLRGBPlugin::GetCurrentGame() {
     if (gameWrapper->IsInOnlineGame()) {
-        return gameWrapper->GetOnlineGame();
+        return std::make_shared<ServerWrapper>(gameWrapper->GetOnlineGame());
     } else if (gameWrapper->IsInReplay()) {
-        return NULL;
+        return nullptr;
     } else {
-        return gameWrapper->GetGameEventAsServer();
+        return std::make_shared<ServerWrapper>(gameWrapper->GetGameEventAsServer());
     }
 }
 
@@ -114,7 +90,7 @@ void RLRGBPlugin::SendRGBEffect(std::string effect, LinearColor color, float spe
         {"duration", dur}
     };
 
-    cpr::Response res = cpr::Post(
+    cpr::PostAsync(
         cpr::Url{cvarManager->getCvar("rlrgb_api_url").getStringValue() + "/effect"},
         cpr::Body{body.dump()},
         cpr::Header{{"Content-Type", "application/json"}}

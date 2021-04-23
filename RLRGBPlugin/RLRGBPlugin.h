@@ -9,10 +9,20 @@
 #pragma comment(lib, "pluginsdk.lib")
 
 class RLRGBPlugin : public BakkesMod::Plugin::BakkesModPlugin {
-public:
-    int myTeamScore = 0;
-    int otherTeamScore = 0;
+private:
+    std::shared_ptr<ServerWrapper> sw;
+    std::shared_ptr<TeamWrapper> myTeam;
+    std::shared_ptr<TeamWrapper> otherTeam;
 
+    int myTeamScore;
+    int otherTeamScore;
+    LinearColor myTeamColor;
+    LinearColor otherTeamColor;
+
+    std::shared_ptr<ServerWrapper> GetCurrentGame();
+    void SendRGBEffect(std::string effect, LinearColor color, float speed, int dur);
+
+public:
     virtual void onLoad();
     virtual void onUnload();
 
@@ -22,9 +32,5 @@ public:
     void OnGoalScored(std::string name);
     void OnMatchEnded(std::string name);
 
-    ServerWrapper GetCurrentGame();
-
-
-    void SendRGBEffect(std::string effect, LinearColor color, float speed, int dur);
 };
 
