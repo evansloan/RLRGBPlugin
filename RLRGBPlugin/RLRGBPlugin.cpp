@@ -110,6 +110,11 @@ void RLRGBPlugin::OnGoalScored(std::string name) {
 }
 
 void RLRGBPlugin::OnMatchEnded(std::string name) {
+    if (sw->IsNull()) {
+        Log(name + ": Unable to retrieve current game");
+        return;
+    }
+
     if (myTeam->GetScore() > otherTeam->GetScore()) {
         std::async(&RLRGBPlugin::SendRGBEffect, this, matchWinEffect, myTeam->GetPrimaryColor());
     } else {
