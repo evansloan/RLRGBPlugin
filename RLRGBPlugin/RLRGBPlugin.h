@@ -27,11 +27,6 @@ private:
     Effect matchWinEffect;
     Effect matchLossEffect;
 
-    //std::shared_ptr<std::string> goalScoredEffect;
-    //std::shared_ptr<std::string> goalAgainstEffect;
-    //std::shared_ptr<std::string> matchWinEffect;
-    //std::shared_ptr<std::string> matchLossEffect;
-
     std::shared_ptr<ServerWrapper> GetCurrentGame();
     void SendRGBEffect(Effect effect, LinearColor color);
 
