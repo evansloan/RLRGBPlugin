@@ -5,7 +5,7 @@ BAKKESMOD_PLUGIN(RLRGBPlugin, "RLRGBPlugin", "1.1", PERMISSION_ALL)
 
 void RLRGBPlugin::onLoad() {
     std::stringstream ss;
-    ss << "Stopping " << exports.pluginName << " version: " << exports.pluginVersion;
+    ss << "Starting " << exports.pluginName << " version: " << exports.pluginVersion;
     Log(ss.str());
 
     LoadConfig();
