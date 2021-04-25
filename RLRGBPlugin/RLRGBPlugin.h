@@ -8,6 +8,12 @@
 
 #pragma comment(lib, "pluginsdk.lib")
 
+struct Effect {
+    std::shared_ptr<std::string> effectName;
+    std::shared_ptr<int> effectDuration;
+    std::shared_ptr<float> effectSpeed;
+};
+
 class RLRGBPlugin : public BakkesMod::Plugin::BakkesModPlugin {
 private:
     std::shared_ptr<ServerWrapper> sw;
@@ -16,13 +22,18 @@ private:
     int myTeamScore;
     int otherTeamScore;
 
-    std::shared_ptr<std::string> goalScoredEffect;
-    std::shared_ptr<std::string> goalAgainstEffect;
-    std::shared_ptr<std::string> matchWinEffect;
-    std::shared_ptr<std::string> matchLossEffect;
+    Effect goalScoredEffect;
+    Effect goalAgainstEffect;
+    Effect matchWinEffect;
+    Effect matchLossEffect;
+
+    //std::shared_ptr<std::string> goalScoredEffect;
+    //std::shared_ptr<std::string> goalAgainstEffect;
+    //std::shared_ptr<std::string> matchWinEffect;
+    //std::shared_ptr<std::string> matchLossEffect;
 
     std::shared_ptr<ServerWrapper> GetCurrentGame();
-    void SendRGBEffect(std::string effect, LinearColor color, float speed, int dur);
+    void SendRGBEffect(Effect effect, LinearColor color);
 
 public:
     virtual void onLoad();

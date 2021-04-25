@@ -1,12 +1,36 @@
 #include "pch.h"
 #include "RLRGBPlugin.h"
 
-BAKKESMOD_PLUGIN(RLRGBPlugin, "RLRGBPlugin", "1.1", PERMISSION_ALL)
+BAKKESMOD_PLUGIN(RLRGBPlugin, "RLRGBPlugin", "1.2", PERMISSION_ALL)
 
 void RLRGBPlugin::onLoad() {
     std::stringstream ss;
     ss << "Starting " << exports.pluginName << " version: " << exports.pluginVersion;
     Log(ss.str());
+
+    goalScoredEffect = Effect{
+        std::make_shared<std::string>(),
+        std::make_shared<int>(),
+        std::make_shared<float>()
+    };
+
+    goalAgainstEffect = Effect{
+        std::make_shared<std::string>(),
+        std::make_shared<int>(),
+        std::make_shared<float>()
+    };
+
+    matchWinEffect = Effect{
+        std::make_shared<std::string>(),
+        std::make_shared<int>(),
+        std::make_shared<float>()
+    };
+
+    matchLossEffect = Effect{
+        std::make_shared<std::string>(),
+        std::make_shared<int>(),
+        std::make_shared<float>()
+    };
 
     LoadConfig();
     HookEvents();
@@ -21,15 +45,19 @@ void RLRGBPlugin::onUnload() {
 }
 
 void RLRGBPlugin::LoadConfig() {
-    cvarManager->registerCvar("rlrgb_api_url", "", "RGB API URL");
-    goalScoredEffect = std::make_shared<std::string>();
-    cvarManager->registerCvar("rlrgb_goal_effect", "flash", "Effect to display on goal scored").bindTo(goalScoredEffect);
-    goalAgainstEffect = std::make_shared<std::string>();
-    cvarManager->registerCvar("rlrgb_goal_against_effect", "fade_out", "Effect to display on goal against scored").bindTo(goalAgainstEffect);
-    matchWinEffect = std::make_shared<std::string>();
-    cvarManager->registerCvar("rlrgb_match_win_effect", "flash", "Effect to display on match win").bindTo(matchWinEffect);
-    matchLossEffect = std::make_shared<std::string>();
-    cvarManager->registerCvar("rlrgb_match_loss_effect", "fade_out", "Effect to display on match loss").bindTo(matchLossEffect);
+    cvarManager->registerCvar("rlrgb_api_url", "", "");
+    cvarManager->registerCvar("rlrgb_goal_effect", "flash", "").bindTo(goalScoredEffect.effectName);
+    cvarManager->registerCvar("rlrgb_goal_speed", "0.2", "", true, true, 0.0, true, 1.0).bindTo(goalScoredEffect.effectSpeed);
+    cvarManager->registerCvar("rlrgb_goal_duration", "2", "", true, true, 0, true, 5).bindTo(goalScoredEffect.effectDuration);
+    cvarManager->registerCvar("rlrgb_goal_against_effect", "fade_out", "").bindTo(goalAgainstEffect.effectName);
+    cvarManager->registerCvar("rlrgb_goal_against_speed", "0.0001", "", true, true, 0.0, true, 1.0).bindTo(goalAgainstEffect.effectSpeed);
+    cvarManager->registerCvar("rlrgb_goal_against_duration", "2", "").bindTo(goalAgainstEffect.effectDuration);
+    cvarManager->registerCvar("rlrgb_match_win_effect", "flash", "").bindTo(matchWinEffect.effectName);
+    cvarManager->registerCvar("rlrgb_match_win_speed", "0.2", "", true, true, 0.0, true, 1.0).bindTo(matchWinEffect.effectSpeed);
+    cvarManager->registerCvar("rlrgb_match_win_duration", "2", "", true, true, 0, true, 5).bindTo(matchWinEffect.effectDuration);
+    cvarManager->registerCvar("rlrgb_match_loss_effect", "fade_out", "").bindTo(matchLossEffect.effectName);
+    cvarManager->registerCvar("rlrgb_match_loss_speed", "0.0001", "", true, true, 0.0, true, 1.0).bindTo(matchLossEffect.effectSpeed);
+    cvarManager->registerCvar("rlrgb_match_loss_duration", "2", "", true, true, 0, true, 5).bindTo(matchLossEffect.effectDuration);
 }
 
 void RLRGBPlugin::HookEvents() {
@@ -73,19 +101,19 @@ void RLRGBPlugin::OnGoalScored(std::string name) {
 
     if (myTeam->GetScore() > myTeamScore) {
         myTeamScore++;
-        std::async(&RLRGBPlugin::SendRGBEffect, this, *goalScoredEffect, myTeam->GetPrimaryColor(), 0.2, 2);
+        std::async(&RLRGBPlugin::SendRGBEffect, this, goalScoredEffect, myTeam->GetPrimaryColor());
     } else {
         otherTeamScore++;
-        std::async(&RLRGBPlugin::SendRGBEffect, this, *goalAgainstEffect, otherTeam->GetPrimaryColor(), 0.0001, 2);
+        std::async(&RLRGBPlugin::SendRGBEffect, this, goalAgainstEffect, otherTeam->GetPrimaryColor());
     }
    
 }
 
 void RLRGBPlugin::OnMatchEnded(std::string name) {
     if (myTeam->GetScore() > otherTeam->GetScore()) {
-        std::async(&RLRGBPlugin::SendRGBEffect, this, *matchWinEffect, myTeam->GetPrimaryColor(), 0.2, 2);
+        std::async(&RLRGBPlugin::SendRGBEffect, this, matchWinEffect, myTeam->GetPrimaryColor());
     } else {
-        std::async(&RLRGBPlugin::SendRGBEffect, this, *matchLossEffect, otherTeam->GetPrimaryColor(), 0.0001, 2);
+        std::async(&RLRGBPlugin::SendRGBEffect, this, matchLossEffect, otherTeam->GetPrimaryColor());
     }
 }
 
@@ -99,12 +127,12 @@ std::shared_ptr<ServerWrapper> RLRGBPlugin::GetCurrentGame() {
     }
 }
 
-void RLRGBPlugin::SendRGBEffect(std::string effect, LinearColor color, float speed, int dur) {
+void RLRGBPlugin::SendRGBEffect(Effect effect, LinearColor color) {
     nlohmann::json body = {
-        {"effect", effect},
+        {"effect", *effect.effectName},
         {"color", {color.R * 255, color.G * 255, color.B * 255}},
-        {"speed", speed},
-        {"duration", dur}
+        {"speed", *effect.effectSpeed},
+        {"duration", *effect.effectDuration}
     };
 
     cpr::PostAsync(
